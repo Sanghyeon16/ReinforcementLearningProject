@@ -1,8 +1,7 @@
-
 import gym
 
 # https://github.com/openai/gym/blob/master/gym/core.py
-class NormalizedEnv(gym.ActionWrapper):
+class ActionNormalizedEnv(gym.ActionWrapper):
     """ Wrap action """
 
     def action(self, action):

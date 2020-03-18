@@ -6,12 +6,13 @@ from .util import *
 
 class Evaluator(object):
 
-    def __init__(self, env, num_episodes, interval, save_path=''):
+    def __init__(self, env, env_normalizer, num_episodes, interval, save_path=''):
         self.num_episodes = num_episodes
         self.interval = interval
         self.save_path = save_path
         self.results = np.array([]).reshape(num_episodes,0)
         self.env = env
+        self.env_normalizer = env_normalizer
 
     def __call__(self, policy, debug=False, visualize=False, save=True):
         observation = None
@@ -31,6 +32,7 @@ class Evaluator(object):
             done = False
             while not done:
                 # basic operation, action ,reward, blablabla ...
+                observation = self.env_normalizer.normalize_obs(observation)
                 action = policy(observation)
 
                 observation, reward, done, info = env.step(action)

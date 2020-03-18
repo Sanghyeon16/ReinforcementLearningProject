@@ -3,7 +3,6 @@
 import numpy as np
 import torch
 
-from .normalized_env import NormalizedEnv
 from .evaluator import Evaluator
 from .ddpg import DDPG
 from .util import get_output_folder
@@ -11,16 +10,13 @@ from .train import train, test
 
 from . import parser
 
-def run(env, eval_env, argv):
+def run(env, eval_env, env_normalizer, argv):
     args = parser.parse(argv)
 
-    env_name = env.unwrapped.spec.id
+    env_name = eval_env.unwrapped.spec.id
     args.output = get_output_folder(args.output, env_name)
     if args.resume == 'default':
         args.resume = 'output/{}-run0'.format(env_name)
-
-    env = NormalizedEnv(env)
-    eval_env = NormalizedEnv(eval_env)
 
     if args.seed > 0:
         np.random.seed(args.seed)
@@ -31,8 +27,9 @@ def run(env, eval_env, argv):
 
     device = torch.device("cuda") if torch.cuda.is_available else None
 
-    agent = DDPG(nb_states, nb_actions, device, args).to(device)
+    agent = DDPG(nb_states, nb_actions, device, env.num_envs, args).to(device)
     evaluate = Evaluator(eval_env, 
+            env_normalizer,
             args.validate_episodes, 
             args.validate_steps, 
             args.output
@@ -40,6 +37,7 @@ def run(env, eval_env, argv):
 
     if args.mode == 'train':
         train(env, 
+                env_normalizer,
                 agent, 
                 args.train_iter, 
                 evaluate, 
