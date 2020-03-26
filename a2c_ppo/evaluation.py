@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 
-def evaluate(actor_critic, eval_env, env_normalizer, eval_log_dir, device):
+def evaluate(actor_critic, eval_env, env_normalizer, device, log_file=None, num_eval=10, visualize=True):
     eval_episode_rewards = []
     total_rewards = [0.0] * eval_env.num_envs
 
@@ -12,14 +12,14 @@ def evaluate(actor_critic, eval_env, env_normalizer, eval_log_dir, device):
         eval_env.num_envs, actor_critic.recurrent_hidden_state_size, device=device)
     eval_masks = torch.zeros(eval_env.num_envs, 1, device=device)
 
-    while len(eval_episode_rewards) < 10:
+    while len(eval_episode_rewards) < num_eval:
         with torch.no_grad():
             obs = torch.as_tensor(obs, dtype = torch.float32, device = device)
             _, action, _, eval_recurrent_hidden_states = actor_critic.act(
                 obs,
                 eval_recurrent_hidden_states,
                 eval_masks,
-                deterministic=True)
+                deterministic=False)
 
         action = action.detach().cpu().numpy()
         obs, reward, done, infos = eval_env.step(action)
@@ -35,7 +35,13 @@ def evaluate(actor_critic, eval_env, env_normalizer, eval_log_dir, device):
             [[0.0] if done_ else [1.0] for done_ in done],
             dtype=torch.float32,
             device=device)
-        eval_env.render()
+        if visualize:
+            eval_env.render()
 
-    print(" Evaluation using {} episodes: mean reward {:.5f}\n".format(
+    msg = (" Evaluation using {} episodes: mean reward {:.5f}\n".format(
         len(eval_episode_rewards), np.mean(eval_episode_rewards)))
+    print(msg)
+    if log_file is not None:
+        print(msg, file=log_file)
+    
+    return eval_episode_rewards

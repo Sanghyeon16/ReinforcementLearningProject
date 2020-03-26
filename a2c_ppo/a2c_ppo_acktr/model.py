@@ -196,24 +196,34 @@ class CNNBase(NNBase):
 
 
 class MLPBase(NNBase):
-    def __init__(self, num_inputs, recurrent=False, hidden_size=64):
-        super(MLPBase, self).__init__(recurrent, num_inputs, hidden_size)
+    def __init__(self, 
+            num_inputs, 
+            recurrent=False, 
+            hidden_sizes=[64, 64],
+            activation_fn = "tanh",
+            use_orth_init = True):
+        super(MLPBase, self).__init__(recurrent, num_inputs, hidden_sizes[-1])
 
         if recurrent:
             num_inputs = hidden_size
 
-        init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
-                               constant_(x, 0), np.sqrt(2))
+        init_ = lambda m: m 
+        if use_orth_init:
+            init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.constant_(x, 0), np.sqrt(2))
+        activation = {"tanh": nn.Tanh(), "relu": nn.ReLU()}[activation_fn]
+        dims = [num_inputs] + hidden_sizes
 
-        self.actor = nn.Sequential(
-            init_(nn.Linear(num_inputs, hidden_size)), nn.Tanh(),
-            init_(nn.Linear(hidden_size, hidden_size)), nn.Tanh())
+        def construct_layers():
+            layers = []
+            for in_size, out_size in zip(dims, dims[1:]):
+                layers.append(init_(nn.Linear(in_size, out_size)))
+                layers.append(activation)
+            return nn.Sequential(*layers)
 
-        self.critic = nn.Sequential(
-            init_(nn.Linear(num_inputs, hidden_size)), nn.Tanh(),
-            init_(nn.Linear(hidden_size, hidden_size)), nn.Tanh())
+        self.actor = construct_layers()
+        self.critic = construct_layers()
 
-        self.critic_linear = init_(nn.Linear(hidden_size, 1))
+        self.critic_linear = init_(nn.Linear(dims[-1], 1))
 
         self.train()
 

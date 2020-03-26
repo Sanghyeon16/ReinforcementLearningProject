@@ -13,7 +13,7 @@ from .util import *
 
 
 class DDPG(nn.Module):
-    def __init__(self, nb_states, nb_actions, device, num_envs, args):
+    def __init__(self, nb_states, nb_actions, device, num_envs, gamma, args):
         super().__init__()
         
         if args.seed > 0:
@@ -41,7 +41,7 @@ class DDPG(nn.Module):
         # Hyper-parameters
         self.batch_size = args.bsize
         self.tau = args.tau
-        self.discount = args.gamma
+        self.discount = gamma
         self.depsilon = 1.0 / args.epsilon
         self.final_epsilon = args.final_epsilon
 

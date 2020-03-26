@@ -12,10 +12,9 @@ class PPO():
                  num_mini_batch,
                  value_loss_coef,
                  entropy_coef,
-                 lr=None,
-                 eps=None,
                  max_grad_norm=None,
-                 use_clipped_value_loss=True):
+                 use_clipped_value_loss=True,
+                 optimizer=None):
 
         self.actor_critic = actor_critic
 
@@ -28,8 +27,8 @@ class PPO():
 
         self.max_grad_norm = max_grad_norm
         self.use_clipped_value_loss = use_clipped_value_loss
+        self.optimizer = optimizer
 
-        self.optimizer = optim.Adam(actor_critic.parameters(), lr=lr, eps=eps)
 
     def update(self, rollouts):
         advantages = rollouts.returns[:-1] - rollouts.value_preds[:-1]

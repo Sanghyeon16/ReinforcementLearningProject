@@ -77,11 +77,12 @@ class DiagGaussian(nn.Module):
     def __init__(self, num_inputs, num_outputs):
         super(DiagGaussian, self).__init__()
 
-        init_ = lambda m: init(m, nn.init.orthogonal_, lambda x: nn.init.
-                               constant_(x, 0))
+        init_ = lambda m: m#init(m, nn.init.orthogonal_, lambda x: nn.init.
+                           #    constant_(x, 0))
 
         self.fc_mean = init_(nn.Linear(num_inputs, num_outputs))
-        self.logstd = AddBias(torch.zeros(num_outputs))
+        self.logstd = nn.Linear(num_inputs, num_outputs)
+        #self.logstd = AddBias(torch.zeros(num_outputs))
 
     def forward(self, x):
         action_mean = self.fc_mean(x)
@@ -91,7 +92,8 @@ class DiagGaussian(nn.Module):
         if x.is_cuda:
             zeros = zeros.cuda()
 
-        action_logstd = self.logstd(zeros)
+        #action_logstd = self.logstd(zeros)
+        action_logstd = self.logstd(x)
         return FixedNormal(action_mean, action_logstd.exp())
 
 

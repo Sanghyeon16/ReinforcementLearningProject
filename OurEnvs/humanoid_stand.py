@@ -10,7 +10,7 @@ class HumanoidStandEnv(HumanoidEnv):
                  contact_cost_range=(-np.inf, 10.0),
                  reset_noise_scale=1e-2,
                  exclude_current_positions_from_observation=False,
-                 healthy_reward=1.0,
+                 healthy_reward=0.0,
                  terminate_when_unhealthy=True,
                  healthy_z_range=(0.5, 2.0)):
 
@@ -54,8 +54,6 @@ class HumanoidStandEnv(HumanoidEnv):
 
         ctrl_cost = self.control_cost(action)
         contact_cost = self.contact_cost
-
-        healthy_reward = self.healthy_reward
 
         rewards = self.sim.data.get_geom_xpos("head")[2]
         costs = ctrl_cost + contact_cost

@@ -6,8 +6,8 @@ from . import my_utils
 
 DEFAULT_CAMERA_CONFIG = {
     'trackbodyid': 1,
-    'distance': 4.0,
-    'lookat': np.array((0.0, 0.0, 2.0)),
+    'distance': 3.5,
+    'lookat': np.array((0.0, 0.0, 1.2)),
     'elevation': -20.0,
 }
 
@@ -105,7 +105,7 @@ class HumanoidEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             low=noise_low, high=noise_high, size=self.model.nv)
         self.set_state(qpos, qvel)
         if self.has_ball:
-            rhand_pos = self.sim.data.get_geom_xpos("rhand")
+            rhand_pos = self.sim.data.get_geom_xpos("rhand").copy()
             rhand_pos[2] += 0.08
             self.sim.data.set_joint_qpos("ball", np.concatenate((rhand_pos, [1, 0, 0, 0])))
 

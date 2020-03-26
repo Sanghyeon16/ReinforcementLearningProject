@@ -4,6 +4,7 @@ import os
 import time
 from collections import deque
 import pickle
+import matplotlib.pyplot as plt
 
 import gym
 import numpy as np
@@ -20,7 +21,14 @@ from .a2c_ppo_acktr.storage import RolloutStorage
 from .evaluation import evaluate
 
 
-def run(env, eval_env, env_normalizer, model, argv):
+def run(env,
+        eval_env,
+        env_normalizer,
+        model,
+        gamma,
+        reload_model = None,
+        save_dir = "",
+        argv = None):
     env_name = eval_env.unwrapped.spec.id
     args = get_args(argv)
 
@@ -31,10 +39,8 @@ def run(env, eval_env, env_normalizer, model, argv):
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
 
-    log_dir = os.path.expanduser(args.log_dir)
-    eval_log_dir = log_dir + "_eval"
-    utils.cleanup_log_dir(log_dir)
-    utils.cleanup_log_dir(eval_log_dir)
+    if save_dir != "":
+        log_file = open(os.path.join(save_dir, "logs.txt"), 'w', buffering=1) 
 
     torch.set_num_threads(1)
     device = torch.device("cuda:0" if args.cuda else "cpu")
@@ -42,8 +48,15 @@ def run(env, eval_env, env_normalizer, model, argv):
     actor_critic = Policy(
         env.observation_space.shape,
         env.action_space,
-        base_kwargs={'recurrent': args.recurrent_policy})
+        base_kwargs={'recurrent': args.recurrent_policy,
+            'hidden_sizes': args.model_hiddens,
+            'activation_fn': args.model_activation,
+            'use_orth_init': args.model_orth_init})
     actor_critic.to(device)
+    optimizer = optim.Adam(actor_critic.parameters(), lr=args.lr, eps=args.eps)
+    if reload_model is not None:
+        actor_critic.load_state_dict(reload_model['model_states'])
+        optimizer.load_state_dict(reload_model['optim_states'])
 
     if model == 'a2c':
         agent = algo.A2C_ACKTR(
@@ -62,9 +75,8 @@ def run(env, eval_env, env_normalizer, model, argv):
             args.num_mini_batch,
             args.value_loss_coef,
             args.entropy_coef,
-            lr=args.lr,
-            eps=args.eps,
-            max_grad_norm=args.max_grad_norm)
+            max_grad_norm=args.max_grad_norm,
+            optimizer=optimizer)
     elif model == 'acktr':
         agent = algo.A2C_ACKTR(
             actor_critic, args.value_loss_coef, args.entropy_coef, acktr=True)
@@ -104,13 +116,16 @@ def run(env, eval_env, env_normalizer, model, argv):
     start = time.time()
     num_updates = int(
         args.num_env_steps) // args.num_steps // env.num_envs
+    total_num_steps = 0
+
+    eval_rewards = {"steps":[], "rew_mean":[], "rew_std":[]}
     for j in range(num_updates):
 
         if args.use_linear_lr_decay:
             # decrease learning rate linearly
             utils.update_linear_schedule(
-                agent.optimizer, j, num_updates,
-                agent.optimizer.lr if model == "acktr" else args.lr)
+                optimizer, j, num_updates,
+                optimizer.lr if model == "acktr" else args.lr)
 
         for step in range(args.num_steps):
             # Sample actions
@@ -144,6 +159,17 @@ def run(env, eval_env, env_normalizer, model, argv):
             rollouts.insert(obs, recurrent_hidden_states, action,
                             action_log_prob, value, reward, masks, bad_masks)
 
+            # save for every interval-th steps or for the last epoch
+            if total_num_steps % args.save_interval < env.num_envs and save_dir != "":
+                torch.save({
+                    "model": model, 
+                    "model_states": actor_critic.state_dict(),
+                    "optim_states": optimizer.state_dict(),
+                    "env_normalizer": env_normalizer
+                    },
+                    os.path.join(save_dir, "model-{}.pth".format(total_num_steps)))
+            total_num_steps += env.num_envs
+
         with torch.no_grad():
             next_value = actor_critic.get_value(
                 rollouts.obs[-1], rollouts.recurrent_hidden_states[-1],
@@ -172,24 +198,9 @@ def run(env, eval_env, env_normalizer, model, argv):
 
         rollouts.after_update()
 
-        # save for every interval-th episode or for the last epoch
-        if (j % args.save_interval == 0
-                or j == num_updates - 1) and args.save_dir != "":
-            save_path = os.path.join(args.save_dir, model)
-            try:
-                os.makedirs(save_path)
-            except OSError:
-                pass
-
-            torch.save([
-                actor_critic,
-            ], os.path.join(save_path, env_name + ".pt"))
-            pickle.dump(env_normalizer, open(os.path.join(save_path, "env_normalizer.pkl"), "wb"))
-
         if j % args.log_interval == 0 and len(episode_rewards) > 1:
-            total_num_steps = (j + 1) * env.num_envs * args.num_steps
             end = time.time()
-            print(
+            msg = (
                 "Updates {}, num timesteps {}, FPS {} \n Last {} training episodes: mean/median reward {:.1f}/{:.1f}, min/max reward {:.1f}/{:.1f}\n"
                 .format(j, total_num_steps,
                         int(total_num_steps / (end - start)),
@@ -197,10 +208,26 @@ def run(env, eval_env, env_normalizer, model, argv):
                         np.median(episode_rewards), np.min(episode_rewards),
                         np.max(episode_rewards), dist_entropy, value_loss,
                         action_loss))
+            print(msg)
+            if log_file is not None:
+                print(msg, file=log_file)
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
-            evaluate(actor_critic, eval_env, env_normalizer, eval_log_dir, device)
+            eval_rews = evaluate(actor_critic, eval_env, env_normalizer, device, log_file)
+            eval_rewards["steps"].append(total_num_steps)
+            eval_rewards["rew_mean"].append(np.mean(eval_rews))
+            eval_rewards["rew_std"].append(np.std(eval_rews))
+            plt.errorbar(eval_rewards["steps"],
+                    eval_rewards["rew_mean"],
+                    yerr = eval_rewards["rew_std"]
+                    )
+            plt.xlabel('Steps')
+            plt.ylabel('Rewards')
+            plt.savefig(os.path.join(save_dir, "rewards.png"))
+            plt.clf()
+
+
 
 
 if __name__ == "__main__":

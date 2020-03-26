@@ -93,12 +93,12 @@ def get_args(argv=None):
     parser.add_argument(
         '--save-interval',
         type=int,
-        default=100,
+        default=500000,
         help='save interval, one save per n updates (default: 100)')
     parser.add_argument(
         '--eval-interval',
         type=int,
-        default=10,
+        default=20,
         help='eval interval, one eval per n updates (default: None)')
     parser.add_argument(
         '--num-env-steps',
@@ -109,10 +109,6 @@ def get_args(argv=None):
         '--log-dir',
         default='/tmp/gym/',
         help='directory to save agent logs (default: /tmp/gym)')
-    parser.add_argument(
-        '--save-dir',
-        default='./trained_models/',
-        help='directory to save agent logs (default: ./trained_models/)')
     parser.add_argument(
         '--no-cuda',
         action='store_true',
@@ -133,6 +129,21 @@ def get_args(argv=None):
         action='store_true',
         default=False,
         help='use a linear schedule on the learning rate')
+    parser.add_argument(
+        '--model-hiddens',
+        default=[500, 500],
+        nargs="+",
+        type=int,
+        help='hidden num of fully connect layers')
+    parser.add_argument(
+        '--model-activation',
+        default="relu",
+        choices=["relu", "tanh"],
+        help='activation function')
+    parser.add_argument(
+        '--model-orth-init',
+        action="store_true",
+        help='orthogonally initialize layers in model')
     args = parser.parse_args(argv)
 
     args.cuda = not args.no_cuda and torch.cuda.is_available()

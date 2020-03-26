@@ -3,18 +3,30 @@
 from .util import *
 from collections import deque
 import numpy as np
+import torch
 
 
-def train(env, env_normalizer, agent, num_iterations, evaluate, validate_steps, output, warmup, visualize=True, debug=False):
-    step = 0
+def train(env,
+        env_normalizer,
+        agent,
+        train_steps,
+        evaluate,
+        validate_interval,
+        log_interval,
+        save_interval,
+        save_dir,
+        warmup,
+        visualize=True):
     obs = env.reset()
     env_normalizer.update_obs(obs)
     obs = env_normalizer.normalize_obs(obs)
     episode_rewards = deque(maxlen=10)
     total_rewards = [0.0] * env.num_envs
-    while step < num_iterations:
+    steps = 0
+    log_file = open(os.path.join(save_dir, "logs.txt"), "w", buffering=1)
+    while steps < train_steps:
         # agent pick action ...
-        if step <= warmup:
+        if steps <= warmup:
             action = agent.random_action(obs)
         else:
             action = agent.select_action(obs)
@@ -34,26 +46,34 @@ def train(env, env_normalizer, agent, num_iterations, evaluate, validate_steps, 
 
         # agent observe and update policy
         agent.observe(obs, action, reward, next_obs, done)
-        if step > warmup :
+        if steps > warmup :
             agent.update_policy()
         
 
-        # [optional] evaluate
-        if evaluate is not None and validate_steps > 0 and step % validate_steps == 0:
+        if log_interval > 0 and steps % log_interval < env.num_envs:
+            msg = 'step:{} episode_reward:{}'.format(steps, np.mean(episode_rewards))
+            prGreen(msg)
+            print(msg, file=log_file)
+
+        if evaluate is not None and validate_interval > 0 and steps % validate_interval < env.num_envs:
             policy = lambda x: agent.greedy_action(x)
-            validate_reward = evaluate(policy, debug=False, visualize=visualize)
-            if debug: prYellow('[Evaluate] Step_{:07d}: mean_reward:{}'.format(step, validate_reward))
+            validate_reward = evaluate(policy, debug=False, visualize=visualize, train_steps = steps)
+            msg = '[Evaluate] Step_{:07d}: mean_reward:{}'.format(steps, validate_reward)
+            prYellow(msg)
+            print(msg, file=log_file)
 
         # [optional] save intermideate model
-        if step % int(num_iterations/3) == 0:
-            agent.save_model(output)
+        if save_interval > 0 and steps % save_interval < env.num_envs:
+            torch.save({
+                "model": "ddpg",
+                "model_states": agent.state_dict(),
+                "env_normalizer": env_normalizer
+                },
+                os.path.join(save_dir, "model-{}.pth".format(steps)))
 
         # update 
-        step += env.num_envs
+        steps += env.num_envs
         obs = next_obs
-
-        if step % 1000 == 0: # end of episode
-            if debug: prGreen('step:{} episode_reward:{}'.format(step, np.mean(episode_rewards)))
 
 
 def test(env, agent, evaluate, model_path, visualize=True, debug=False):

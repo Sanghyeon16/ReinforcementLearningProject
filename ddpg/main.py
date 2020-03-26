@@ -2,6 +2,7 @@
 
 import numpy as np
 import torch
+import os
 
 from .evaluator import Evaluator
 from .ddpg import DDPG
@@ -10,51 +11,45 @@ from .train import train, test
 
 from . import parser
 
-def run(env, eval_env, env_normalizer, argv):
+def run(env, 
+        eval_env,
+        env_normalizer,
+        gamma,
+        save_dir = "",
+        reload_model = None,
+        argv = None):
     args = parser.parse(argv)
 
     env_name = eval_env.unwrapped.spec.id
-    args.output = get_output_folder(args.output, env_name)
-    if args.resume == 'default':
-        args.resume = 'output/{}-run0'.format(env_name)
-
     if args.seed > 0:
         np.random.seed(args.seed)
         env.seed(args.seed)
+
+    if save_dir != "":
+        log_file = open(os.path.join(save_dir, "logs.txt"), 'w', buffering=1) 
 
     nb_states = env.observation_space.shape[0]
     nb_actions = env.action_space.shape[0]
 
     device = torch.device("cuda") if torch.cuda.is_available else None
 
-    agent = DDPG(nb_states, nb_actions, device, env.num_envs, args).to(device)
+    agent = DDPG(nb_states, nb_actions, device, env.num_envs, gamma, args).to(device)
+    if reload_model is not None:
+        agent.load_state_dict(reload_model['model_states'])
+
     evaluate = Evaluator(eval_env, 
             env_normalizer,
             args.validate_episodes, 
-            args.validate_steps, 
-            args.output
+            save_dir
             )
 
-    if args.mode == 'train':
-        train(env, 
-                env_normalizer,
-                agent, 
-                args.train_iter, 
-                evaluate, 
-                args.validate_steps, 
-                args.output, 
-                args.warmup,
-                debug=args.debug
-                )
-
-    elif args.mode == 'test':
-        test(env,
-                agent,
-                evaluate, 
-                args.resume,
-                visualize=True, 
-                debug=args.debug
-                )
-
-    else:
-        raise RuntimeError('undefined mode {}'.format(args.mode))
+    train(env = env,
+        env_normalizer = env_normalizer,
+        agent = agent,
+        train_steps = args.train_steps,
+        evaluate = evaluate,
+        validate_interval = args.validate_interval,
+        log_interval = args.log_interval,
+        save_interval = args.save_interval,
+        save_dir = save_dir,
+        warmup = args.warmup)
