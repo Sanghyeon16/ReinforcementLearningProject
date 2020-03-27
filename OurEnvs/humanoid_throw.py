@@ -52,14 +52,13 @@ class HumanoidThrowEnv(HumanoidEnv):
 
 
     def step(self, action):
-        ball_x_before = self.sim.data.get_joint_qpos('ball')[2]
+        ball_x_before = self.sim.data.get_body_xipos('ball')[0]
         self.do_simulation(action, self.frame_skip)
-        ball_x_after  = self.sim.data.get_joint_qpos('ball')[2]
+        ball_x_after  = self.sim.data.get_body_xipos('ball')[0]
 
         ctrl_cost = self.control_cost(action)
         contact_cost = self.contact_cost
 
-        ball_height = self.sim.data.get_body_xipos("ball")[2]
         rewards = ball_x_after - ball_x_before
         costs = ctrl_cost + contact_cost
 

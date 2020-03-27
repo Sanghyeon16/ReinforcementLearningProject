@@ -26,7 +26,7 @@ We implemented three environments for our humanoid to learn.
 * OurHumanoidStand-v0
 * OurHumanoidHold-v0
 * OurHumanoidThrow-v0
-* 
+ 
 ### Options for training
 |Options | Descriptions |
 |---|---|
