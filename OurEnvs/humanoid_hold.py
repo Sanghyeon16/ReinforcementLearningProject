@@ -10,7 +10,7 @@ class HumanoidHoldEnv(HumanoidEnv):
                  contact_cost_range=(-np.inf, 10.0),
                  reset_noise_scale=1e-2,
                  exclude_current_positions_from_observation=False,
-                 healthy_reward=0.0,
+                 healthy_reward=2.0,
                  terminate_when_unhealthy=True,
                  ball_z_range=(0.5, float("inf"))):
 
@@ -29,8 +29,9 @@ class HumanoidHoldEnv(HumanoidEnv):
                  exclude_current_positions_from_observation)
 
     def reset_model(self):
-        HumanoidEnv.reset_model(self)
-        self.orig_ball_height = self.sim.data.get_joint_qpos("ball")[2]
+        observation = HumanoidEnv.reset_model(self)
+        self.orig_ball_height = self.sim.data.get_body_xipos("ball")[2]
+        return observation
 
 
     @property
@@ -67,7 +68,7 @@ class HumanoidHoldEnv(HumanoidEnv):
         rewards = self.orig_ball_height - abs(self.orig_ball_height - ball_height)
         costs = ctrl_cost + contact_cost
 
-        reward = rewards - costs
+        reward = rewards + self.healthy_reward - costs
         observation = self._get_obs()
         done = self.done 
         if not self.started:
