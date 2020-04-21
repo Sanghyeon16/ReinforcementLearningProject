@@ -119,7 +119,7 @@ def run(env,
     total_num_steps = 0
 
     eval_rewards = {"steps":[], "rew_mean":[], "rew_std":[]}
-    for j in range(num_updates):
+    for j in range(num_updates+1):
 
         if args.use_linear_lr_decay:
             # decrease learning rate linearly
@@ -214,7 +214,7 @@ def run(env,
 
         if (args.eval_interval is not None and len(episode_rewards) > 1
                 and j % args.eval_interval == 0):
-            eval_rews = evaluate(actor_critic, eval_env, env_normalizer, device, log_file)
+            eval_rews = evaluate(actor_critic, eval_env, env_normalizer, device, log_file, visualize = not args.no_visualize)
             eval_rewards["steps"].append(total_num_steps)
             eval_rewards["rew_mean"].append(np.mean(eval_rews))
             eval_rewards["rew_std"].append(np.std(eval_rews))

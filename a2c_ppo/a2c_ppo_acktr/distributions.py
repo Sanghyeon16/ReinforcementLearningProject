@@ -33,15 +33,25 @@ class FixedCategorical(torch.distributions.Categorical):
 
 
 # Normal
-class FixedNormal(torch.distributions.Normal):
-    def log_probs(self, actions):
-        return super().log_prob(actions).sum(-1, keepdim=True)
+class FixedNormal():
+    def __init__(self, mean, log_scale):
+        self.mean = mean
+        self.log_scale = log_scale
 
-    def entrop(self):
-        return super.entropy().sum(-1)
+    def log_probs(self, actions):
+        var = torch.exp(self.log_scale * 2)
+        log_prob =  -((actions - self.mean) ** 2) / (2 * var) - self.log_scale - math.log(math.sqrt(2 * math.pi))
+        return log_prob.sum(-1, keepdim=True)
+
+    def entropy(self):
+        return (0.5 + 0.5 * math.log(2 * math.pi) + self.log_scale).sum(-1)
 
     def mode(self):
         return self.mean
+
+    def sample(self):
+        with torch.no_grad():
+            return torch.normal(self.mean, self.log_scale.exp())
 
 
 # Bernoulli
@@ -94,7 +104,7 @@ class DiagGaussian(nn.Module):
 
         #action_logstd = self.logstd(zeros)
         action_logstd = self.logstd(x)
-        return FixedNormal(action_mean, action_logstd.exp())
+        return FixedNormal(action_mean, action_logstd)
 
 
 class Bernoulli(nn.Module):

@@ -144,6 +144,10 @@ def get_args(argv=None):
         '--model-orth-init',
         action="store_true",
         help='orthogonally initialize layers in model')
+    parser.add_argument(
+        '--no-visualize',
+        action="store_true",
+        help='do not render when evaluating')
     args = parser.parse_args(argv)
 
     args.cuda = not args.no_cuda and torch.cuda.is_available()

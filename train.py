@@ -14,7 +14,7 @@ from arg_parser import parser
 args, model_args = parser.parse_known_args()
 
 env = vec_envs.make_vec_envs(args.env, args.env_seed, args.num_envs)
-eval_env = vec_envs.make_vec_envs(args.env, args.env_seed, 1)
+eval_env = vec_envs.make_vec_envs(args.eval_env if args.eval_env else args.env, args.env_seed, 1)
 
 env_normalizer = EnvNormalizer(args.env_normalize_coef, env.observation_space.shape[0], args.gamma,  norm_rew=True)
 reload_model = None

@@ -1,13 +1,5 @@
 from gym.envs.registration import registry, register, make, spec
 
-# Algorithmic
-# ----------------------------------------
-
-#register(
-#    id='OurHumanoidRun-v0',
-#    entry_point='OurEnvs.humanoid_run:HumanoidRunEnv',
-#    max_episode_steps=1000,
-#)
 
 register(
     id='OurHumanoidStand-v0',
@@ -26,3 +18,17 @@ register(
     entry_point='OurEnvs.humanoid_throw:HumanoidThrowEnv',
     max_episode_steps=1000,
 )
+
+register(
+    id='OurHumanoidStandToHold-v0',
+    entry_point='OurEnvs.humanoid_stand_to_hold:HumanoidStandToHoldEnv',
+    max_episode_steps=1000,
+)
+
+register(
+    id='OurHumanoidHoldToThrow-v0',
+    entry_point='OurEnvs.humanoid_hold_to_throw:HumanoidHoldToThrowEnv',
+    max_episode_steps=1000,
+)
+
+

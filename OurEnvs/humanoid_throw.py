@@ -5,7 +5,7 @@ from .base_humanoid import HumanoidEnv
 class HumanoidThrowEnv(HumanoidEnv):
     def __init__(self,
                  xml_file='robots/humanoid_CMU_with_ball.xml',
-                 ctrl_cost_weight=0.01,
+                 ctrl_cost_weight=0.0,
                  contact_cost_weight=0.0,
                  contact_cost_range=(-np.inf, 10.0),
                  reset_noise_scale=1e-2,

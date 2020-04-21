@@ -15,8 +15,8 @@ DEFAULT_CAMERA_CONFIG = {
 class HumanoidEnv(mujoco_env.MujocoEnv, utils.EzPickle):
     def __init__(self,
                  xml_file='robots/humanoid_CMU.xml',
-                 ctrl_cost_weight=0.1,
-                 contact_cost_weight=5e-7,
+                 ctrl_cost_weight=0.0,
+                 contact_cost_weight=0.0,
                  contact_cost_range=(-np.inf, 10.0),
                  reset_noise_scale=1e-2,
                  exclude_current_positions_from_observation=False):
