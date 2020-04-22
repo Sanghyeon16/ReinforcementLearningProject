@@ -91,19 +91,19 @@ class DiagGaussian(nn.Module):
                            #    constant_(x, 0))
 
         self.fc_mean = init_(nn.Linear(num_inputs, num_outputs))
-        self.logstd = nn.Linear(num_inputs, num_outputs)
-        #self.logstd = AddBias(torch.zeros(num_outputs))
+        #self.logstd = nn.Linear(num_inputs, num_outputs)
+        self.logstd = AddBias(torch.zeros(num_outputs))
 
     def forward(self, x):
-        action_mean = self.fc_mean(x)
+        action_mean = torch.tanh(self.fc_mean(x))
 
         #  An ugly hack for my KFAC implementation.
         zeros = torch.zeros(action_mean.size())
         if x.is_cuda:
             zeros = zeros.cuda()
 
-        #action_logstd = self.logstd(zeros)
-        action_logstd = self.logstd(x)
+        action_logstd = self.logstd(zeros)
+        #action_logstd = self.logstd(x)
         return FixedNormal(action_mean, action_logstd)
 
 
