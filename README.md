@@ -21,11 +21,13 @@ python evaluate.py <saved_model.pth> [options for evaluation]
 It will save the video of testing in the directory defined in `--save-dir`
 
 ### Environment names
-We implemented three environments for our humanoid to learn.
+We implemented five environments for our humanoid to learn.
 
 * OurHumanoidStand-v0
 * OurHumanoidHold-v0
 * OurHumanoidThrow-v0
+* OurHumanoidStandToHold-v0
+* OurHumanoidHoldToThrow-v0
  
 ### Options for training
 |Options | Descriptions |

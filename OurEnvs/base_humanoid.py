@@ -118,3 +118,9 @@ class HumanoidEnv(mujoco_env.MujocoEnv, utils.EzPickle):
                 getattr(self.viewer.cam, key)[:] = value
             else:
                 setattr(self.viewer.cam, key, value)
+
+    def render(self, *args, **kwargs):
+        kwargs["width"] = 1920
+        kwargs["height"] = 1080
+        return mujoco_env.MujocoEnv.render(self, *args, **kwargs)
+
