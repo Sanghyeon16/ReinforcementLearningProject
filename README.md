@@ -1,5 +1,5 @@
 # Learning to Throw with Reinforcement Learning
-In this project, we intended to train a humanoid robot to throw a ball using only reinforcement learning. The goal is to let the robot learn to throw a ball as fast or as far as possible.
+In this project, we intended to train a humanoid robot to throw a ball using only reinforcement learning. The goal is to let the robot learn to throw a ball as fast or far as possible.
 
 ## Requirements
 * [OpenAI gym](https://github.com/openai/gym)
